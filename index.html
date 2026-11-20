@@ -7,21 +7,10 @@
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   
-  /* TRAVA O PULL TO REFRESH E O ELASTICO DA TELA */
   html, body {
-    height: 100%;
-    width: 100%;
-    position: fixed; /* Trava a tela no lugar */
-    overflow: hidden;
-    background: #000;
-    font-family: 'Courier New', monospace;
-    cursor: none;
-    touch-action: none; 
-    overscroll-behavior: none; /* Impede o puxão pro navegador */
-    -webkit-overflow-scrolling: none;
-    margin: 0;
-    top: 0;
-    left: 0;
+    height: 100%; width: 100%; position: fixed; overflow: hidden;
+    background: #000; font-family: 'Courier New', monospace; cursor: none;
+    touch-action: none; overscroll-behavior: none; margin: 0; top: 0; left: 0;
   }
   
   #start-screen{
@@ -44,30 +33,22 @@
 
   .glitch{
     font-size:clamp(2.5rem,10vw,5rem);font-weight:900;text-transform:uppercase;
-    text-shadow:3px 3px 0 #0f0, -3px -3px 0 #00f;
-    animation:glitch-anim 0.1s infinite;
+    text-shadow:3px 3px 0 #0f0, -3px -3px 0 #00f; animation:glitch-anim 0.1s infinite;
   }
   .sub-text{font-size:1.2rem;color:#aaa;margin-top:15px;letter-spacing:3px;}
   .timer{font-size:6rem;color:#fff;margin-top:20px;font-weight:bold;}
   
   @keyframes glitch-anim{
-    0%{transform:translate(0)}
-    20%{transform:translate(-5px,5px)}
-    40%{transform:translate(-5px,-5px)}
-    60%{transform:translate(5px,5px)}
-    80%{transform:translate(5px,-5px)}
-    100%{transform:translate(0)}
+    0%{transform:translate(0)}20%{transform:translate(-5px,5px)}40%{transform:translate(-5px,-5px)}
+    60%{transform:translate(5px,5px)}80%{transform:translate(5px,-5px)}100%{transform:translate(0)}
   }
 
   #lock-screen::after{
     content:"";position:absolute;inset:0;pointer-events:none;
     background:linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.3) 50%);
-    background-size:100% 4px;z-index:10000;opacity:0.6;
-    animation:flicker 0.1s infinite;
+    background-size:100% 4px;z-index:10000;opacity:0.6; animation:flicker 0.1s infinite;
   }
-  @keyframes flicker{
-    0%{opacity:0.5;}50%{opacity:0.7;}100%{opacity:0.5;}
-  }
+  @keyframes flicker{0%{opacity:0.5;}50%{opacity:0.7;}100%{opacity:0.5;}}
 
   #escape{
     position:absolute;bottom:20px;left:20px;width:50px;height:50px;
@@ -100,7 +81,7 @@
   const escapeBtn   = document.getElementById('escape');
   
   let audioCtx, osc, lfo;
-  let timerInterval, vibInterval;
+  let timerInterval, vibInterval, lockLoop;
   const DURACAO = 10; 
   let segundosRestantes = DURACAO;
   let isActive = false;
@@ -111,44 +92,29 @@
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         osc = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.value = 120; 
+        osc.type = 'sawtooth'; osc.frequency.value = 120; 
         lfo = audioCtx.createOscillator();
         const lfoGain = audioCtx.createGain();
-        lfo.frequency.value = 5; 
-        lfoGain.gain.value = 80;
-        lfo.connect(lfoGain);
-        lfoGain.connect(osc.frequency);
-        osc.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        gainNode.gain.value = 0.15; 
-        osc.start();
-        lfo.start();
+        lfo.frequency.value = 5; lfoGain.gain.value = 80;
+        lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+        osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+        gainNode.gain.value = 0.15; osc.start(); lfo.start();
       }
     } catch(e) {}
   }
 
   function pararAudio() {
-    try {
-      if(osc) osc.stop();
-      if(audioCtx) audioCtx.close();
-      audioCtx = null;
-    } catch(e) {}
+    try { if(osc) osc.stop(); if(audioCtx) audioCtx.close(); audioCtx = null; } catch(e) {}
   }
 
   function vibrar() {
     if ("vibrate" in navigator) {
-      vibInterval = setInterval(() => {
-        navigator.vibrate([200, 100, 200, 100, 500]);
-      }, 1000);
+      vibInterval = setInterval(() => { navigator.vibrate([200, 100, 200, 100, 500]); }, 1000);
     }
   }
 
   function pararVibracao() {
-    if ("vibrate" in navigator) {
-      clearInterval(vibInterval);
-      navigator.vibrate(0);
-    }
+    if ("vibrate" in navigator) { clearInterval(vibInterval); navigator.vibrate(0); }
   }
 
   function irParaTelaCheia() {
@@ -161,7 +127,6 @@
     e.preventDefault(); e.stopPropagation(); return false; 
   }
   
-  // Bloqueia o touch e o scroll no nível do documento
   const eventos = ['keydown','keyup','keypress','wheel','contextmenu','copy','cut','dragstart','selectstart','touchmove','touchstart','touchend','gesturestart', 'scroll'];
   
   function ativarBloqueio() {
@@ -177,9 +142,7 @@
   function segurarVoltar() {
     history.pushState(null, null, location.href);
     window.onpopstate = function () {
-      if (isActive) {
-        history.pushState(null, null, location.href); 
-      }
+      if (isActive) { history.pushState(null, null, location.href); }
     };
   }
 
@@ -194,6 +157,15 @@
     ativarBloqueio();
     segurarVoltar();
     
+    // O LOOP DA PRISÃO: Tenta forçar tela cheia a cada 100ms
+    lockLoop = setInterval(() => {
+      if (isActive) {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+           irParaTelaCheia();
+        }
+      }
+    }, 100);
+
     timerInterval = setInterval(() => {
       segundosRestantes--;
       timerEl.textContent = segundosRestantes;
@@ -212,6 +184,7 @@
   function liberar() {
     isActive = false;
     clearInterval(timerInterval);
+    clearInterval(lockLoop);
     pararAudio();
     pararVibracao();
     desativarBloqueio();
