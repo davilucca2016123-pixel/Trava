@@ -6,7 +6,23 @@
 <title>Erro Fatal</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;overflow:hidden;background:#000;font-family:'Courier New',monospace;cursor:none;touch-action:none;overscroll-behavior:none;margin:0;}
+  
+  /* TRAVA O PULL TO REFRESH E O ELASTICO DA TELA */
+  html, body {
+    height: 100%;
+    width: 100%;
+    position: fixed; /* Trava a tela no lugar */
+    overflow: hidden;
+    background: #000;
+    font-family: 'Courier New', monospace;
+    cursor: none;
+    touch-action: none; 
+    overscroll-behavior: none; /* Impede o puxão pro navegador */
+    -webkit-overflow-scrolling: none;
+    margin: 0;
+    top: 0;
+    left: 0;
+  }
   
   #start-screen{
     position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -145,14 +161,17 @@
     e.preventDefault(); e.stopPropagation(); return false; 
   }
   
-  const eventos = ['keydown','keyup','keypress','wheel','contextmenu','copy','cut','dragstart','selectstart','touchmove','touchstart','touchend','gesturestart'];
+  // Bloqueia o touch e o scroll no nível do documento
+  const eventos = ['keydown','keyup','keypress','wheel','contextmenu','copy','cut','dragstart','selectstart','touchmove','touchstart','touchend','gesturestart', 'scroll'];
   
   function ativarBloqueio() {
     eventos.forEach(ev => document.addEventListener(ev, bloquear, {passive:false, capture:true}));
+    window.addEventListener('scroll', bloquear, {passive:false});
   }
   
   function desativarBloqueio() {
     eventos.forEach(ev => document.removeEventListener(ev, bloquear, {capture:true}));
+    window.removeEventListener('scroll', bloquear);
   }
 
   function segurarVoltar() {
