@@ -25,11 +25,27 @@
   }
   #lock-screen.active{display:flex;}
   
-  /* O que acontece quando ele aperta F11 */
+  /* MODO FUGA (Anti-F11) */
+  body.fuga { background: #0078D7 !important; } /* Azul da tela de erro do Windows */
   body.fuga #lock-screen {
-    position: fixed;
-    transform: scale(3); /* Dá um zoom gigante pra cobrir tudo */
-    background: #000;
+    background: #0078D7;
+    color: #fff;
+  }
+  body.fuga .glitch {
+    display: none; /* Esconde o glitch antigo */
+  }
+  body.fuga #lock-screen::before {
+    content: ":( \A O seu PC encontrou um problema e precisa ser reiniciado. Estamos apenas coletando algumas informações de erro, e em seguida reiniciaremos para você. \A \A 0% concluído";
+    white-space: pre-wrap;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 2.5vw; /* Escala com a tela */
+    text-align: left;
+    padding: 10vw;
+    color: white;
+    text-shadow: none;
+    display: block;
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
   }
 
   .glitch{
@@ -92,7 +108,6 @@
   
   let audioCtx, osc, lfo;
   let timerInterval;
-  let checandoTelaCheia;
   const DURACAO = 10; 
   let segundosRestantes = DURACAO;
   let isActive = false;
@@ -136,19 +151,17 @@
 
   function bloquear(e) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'w') return; // escape
-    e.preventDefault(); 
-    e.stopPropagation(); 
-    return false; 
+    e.preventDefault(); e.stopPropagation(); return false; 
   }
   
-  const eventosParaBloquear = ['keydown','keyup','keypress','wheel','contextmenu','copy','cut','dragstart','selectstart'];
+  const eventos = ['keydown','keyup','keypress','wheel','contextmenu','copy','cut','dragstart','selectstart'];
   
   function ativarBloqueio() {
-    eventosParaBloquear.forEach(ev => document.addEventListener(ev, bloquear, {passive:false, capture:true}));
+    eventos.forEach(ev => document.addEventListener(ev, bloquear, {passive:false, capture:true}));
   }
   
   function desativarBloqueio() {
-    eventosParaBloquear.forEach(ev => document.removeEventListener(ev, bloquear, {capture:true}));
+    eventos.forEach(ev => document.removeEventListener(ev, bloquear, {capture:true}));
   }
 
   startBtn.addEventListener('click', () => {
@@ -160,20 +173,6 @@
     tocarSirene();
     ativarBloqueio();
     
-    // --- MODO ANTI-F11 ---
-    checandoTelaCheia = setInterval(() => {
-      // Se ele saiu da tela cheia (F11)
-      if (isActive && !document.fullscreenElement && !document.webkitFullscreenElement) {
-         document.body.classList.add('fuga'); // Dá zoom de 300% cobrindo a tela toda
-         // Tenta religar o som caso o navegador tenha suspendido ao sair
-         if (audioCtx && audioCtx.state === 'suspended') {
-             audioCtx.resume();
-         }
-      } else {
-         document.body.classList.remove('fuga');
-      }
-    }, 200);
-
     timerInterval = setInterval(() => {
       segundosRestantes--;
       timerEl.textContent = segundosRestantes;
@@ -193,7 +192,6 @@
   function liberar() {
     isActive = false;
     clearInterval(timerInterval);
-    clearInterval(checandoTelaCheia);
     pararAudio();
     desativarBloqueio();
     
@@ -209,10 +207,10 @@
 
   escapeBtn.addEventListener('click', liberar);
 
-  // Detecta se o usuário apertou F11 ou Esc
+  // O pulo do gato: Se ele apertar F11, ativa a tela azul do Windows
   document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement && isActive) {
-      document.body.classList.add('fuga'); // Ativa o zoom imediato
+      document.body.classList.add('fuga');
     }
   });
 
