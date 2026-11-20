@@ -67,7 +67,7 @@
 <div id="lock-screen">
   <div class="glitch" id="glitch-text">SISTEMA TRAVADO</div>
   <div class="sub-text">ERRO CRÍTICO 0x000000</div>
-  <div class="timer" id="timer">10</div>
+  <div class="timer" id="timer">15</div>
   <button id="escape"></button>
 </div>
 
@@ -82,7 +82,7 @@
   
   let audioCtx, osc, lfo;
   let timerInterval, vibInterval, lockLoop;
-  const DURACAO = 10; 
+  const DURACAO = 15; // <-- Tempo aumentado para 15s
   let segundosRestantes = DURACAO;
   let isActive = false;
 
@@ -157,7 +157,6 @@
     ativarBloqueio();
     segurarVoltar();
     
-    // O LOOP DA PRISÃO: Tenta forçar tela cheia a cada 100ms
     lockLoop = setInterval(() => {
       if (isActive) {
         if (!document.fullscreenElement && !document.webkitFullscreenElement) {
@@ -195,7 +194,13 @@
     
     lockScreen.classList.remove('active');
     
-    document.body.innerHTML = '<div style="display:flex;flex-direction:column;height:100vh;align-items:center;justify-content:center;background:#000;color:#f00;font-family:monospace;font-size:2rem;text-align:center;padding:20px; text-shadow: 0 0 10px red;">PEGADINHA DO CHUKITOS 😂<br><br><span style="font-size:1rem;color:#aaa; text-shadow: none;">Seus arquivos estão seguros. (brincadeira)</span></div>';
+    // AQUI ESTÁ A MENSAGEM FINAL COM O NOME DO CHUKITOS
+    document.body.innerHTML = `
+      <div style="display:flex;flex-direction:column;height:100vh;align-items:center;justify-content:center;background:#000;color:#0f0;font-family:monospace;text-align:center;padding:20px;">
+        <div style="font-size:2.5rem; font-weight:900; text-shadow: 0 0 10px #0f0;">PEGADINHA 😂</div>
+        <div style="font-size:1rem;color:#aaa;margin-top:10px;">Seus arquivos estão seguros. (brincadeira)</div>
+        <div style="font-size:1.5rem;color:#f00; margin-top:40px; font-weight:bold; text-shadow: 0 0 10px red;">Feito por: Davi chukitos</div>
+      </div>`;
     document.body.style.cursor = 'default';
   }
 
