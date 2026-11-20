@@ -8,7 +8,6 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   html,body{height:100%;overflow:hidden;background:#000;font-family:'Courier New',monospace;cursor:none;}
   
-  /* Tela de Start */
   #start-screen{
     position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
     background:#0a0a0a;color:#ccc;z-index:9998;text-align:center;
@@ -20,7 +19,6 @@
   }
   @keyframes pulse{0%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,0,0,0.7);}70%{transform:scale(1.05);box-shadow:0 0 0 10px rgba(255,0,0,0);}100%{transform:scale(1);}}
 
-  /* Tela de Trava */
   #lock-screen{
     position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
     background:#000;z-index:9999;color:#f00;text-align:center;
@@ -44,7 +42,6 @@
     100%{transform:translate(0)}
   }
 
-  /* Efeito CRT de monitor velho */
   #lock-screen::after{
     content:"";position:absolute;inset:0;pointer-events:none;
     background:linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.3) 50%);
@@ -55,7 +52,6 @@
     0%{opacity:0.5;}50%{opacity:0.7;}100%{opacity:0.5;}
   }
 
-  /* Botão de escape invisível no canto */
   #escape{
     position:absolute;bottom:15px;left:15px;width:40px;height:40px;
     background:transparent;border:none;cursor:pointer;z-index:10001;opacity:0;
@@ -89,32 +85,27 @@
   
   let audioCtx, osc, lfo;
   let timerInterval;
-  const DURACAO = 10; // Segundos
+  let checandoTelaCheia;
+  const DURACAO = 10; 
   let segundosRestantes = DURACAO;
+  let isActive = false;
 
-  // --- Áudio de Erro (Sirene Industrial) ---
   function tocarSirene() {
     try {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       osc = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
-      
       osc.type = 'sawtooth';
-      osc.frequency.value = 120; // Grave e alto
-      
+      osc.frequency.value = 120; 
       lfo = audioCtx.createOscillator();
       const lfoGain = audioCtx.createGain();
-      lfo.frequency.value = 5; // Frequência da sirene
+      lfo.frequency.value = 5; 
       lfoGain.gain.value = 80;
-      
       lfo.connect(lfoGain);
       lfoGain.connect(osc.frequency);
-      
       osc.connect(gainNode);
       gainNode.connect(audioCtx.destination);
-      
-      gainNode.gain.value = 0.15; // Volume alto
-      
+      gainNode.gain.value = 0.15; 
       osc.start();
       lfo.start();
     } catch(e) {}
@@ -127,17 +118,14 @@
     } catch(e) {}
   }
 
-  // --- Tela Cheia ---
   function irParaTelaCheia() {
     const el = document.documentElement;
     if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
     else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
   }
 
-  // --- Bloqueio de Eventos (Teclado e Mouse) ---
   function bloquear(e) {
-    // Permite apenas o Ctrl+W (fechar aba) pra não travar a pessoa de vez
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'w') return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'w') return; // escape de emergência
     e.preventDefault(); 
     e.stopPropagation(); 
     return false; 
@@ -153,15 +141,23 @@
     eventosParaBloquear.forEach(ev => document.removeEventListener(ev, bloquear, {capture:true}));
   }
 
-  // --- Lógica Principal ---
   startBtn.addEventListener('click', () => {
     startScreen.style.display = 'none';
     lockScreen.classList.add('active');
+    isActive = true;
     
     irParaTelaCheia();
     tocarSirene();
     ativarBloqueio();
     
+    // --- MODO PRISÃO (Se sair do F11, volta na hora) ---
+    checandoTelaCheia = setInterval(() => {
+      if (isActive && !document.fullscreenElement && !document.webkitFullscreenElement) {
+         irParaTelaCheia(); // força voltar pra tela cheia
+         tocarSirene(); // tenta religar o som
+      }
+    }, 500);
+
     timerInterval = setInterval(() => {
       segundosRestantes--;
       timerEl.textContent = segundosRestantes;
@@ -179,7 +175,9 @@
   });
 
   function liberar() {
+    isActive = false;
     clearInterval(timerInterval);
+    clearInterval(checandoTelaCheia);
     pararAudio();
     desativarBloqueio();
     
@@ -192,16 +190,7 @@
     document.body.style.cursor = 'default';
   }
 
-  // Escape de emergência
   escapeBtn.addEventListener('click', liberar);
-
-  // Desbloqueia se conseguir sair da tela cheia pelo botão do navegador
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement && lockScreen.classList.contains('active')) {
-      liberar();
-    }
-  });
-
 })();
 </script>
 </body>
