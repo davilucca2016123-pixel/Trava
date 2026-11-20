@@ -67,7 +67,7 @@
 <div id="lock-screen">
   <div class="glitch" id="glitch-text">SISTEMA TRAVADO</div>
   <div class="sub-text">ERRO CRÍTICO 0x000000</div>
-  <div class="timer" id="timer">15</div>
+  <div class="timer" id="timer">10:00</div>
   <button id="escape"></button>
 </div>
 
@@ -82,7 +82,7 @@
   
   let audioCtx, osc, lfo;
   let timerInterval, vibInterval, lockLoop;
-  const DURACAO = 15; 
+  const DURACAO = 600; // 10 MINUTOS EM SEGUNDOS
   let segundosRestantes = DURACAO;
   let isActive = false;
 
@@ -146,6 +146,12 @@
     };
   }
 
+  function formatarTempo(segundos) {
+    const m = Math.floor(segundos / 60);
+    const s = segundos % 60;
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
   startBtn.addEventListener('click', () => {
     startScreen.style.display = 'none';
     lockScreen.classList.add('active');
@@ -165,11 +171,13 @@
       }
     }, 100);
 
+    timerEl.textContent = formatarTempo(segundosRestantes);
+
     timerInterval = setInterval(() => {
       segundosRestantes--;
-      timerEl.textContent = segundosRestantes;
+      timerEl.textContent = formatarTempo(segundosRestantes);
       
-      if (segundosRestantes === 3) {
+      if (segundosRestantes <= 3) {
         glitchText.textContent = "DELETANDO...";
         glitchText.style.color = "#fff";
       }
