@@ -6,7 +6,7 @@
 <title>Erro Fatal</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
-  html,body{height:100%;overflow:hidden;background:#000;font-family:'Courier New',monospace;cursor:none;}
+  html,body{height:100%;overflow:hidden;background:#000;font-family:'Courier New',monospace;cursor:none;margin:0;}
   
   #start-screen{
     position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -25,6 +25,13 @@
   }
   #lock-screen.active{display:flex;}
   
+  /* O que acontece quando ele aperta F11 */
+  body.fuga #lock-screen {
+    position: fixed;
+    transform: scale(3); /* Dá um zoom gigante pra cobrir tudo */
+    background: #000;
+  }
+
   .glitch{
     font-size:clamp(3rem,8vw,6rem);font-weight:900;text-transform:uppercase;
     text-shadow:3px 3px 0 #0f0, -3px -3px 0 #00f;
@@ -92,22 +99,24 @@
 
   function tocarSirene() {
     try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      osc = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.value = 120; 
-      lfo = audioCtx.createOscillator();
-      const lfoGain = audioCtx.createGain();
-      lfo.frequency.value = 5; 
-      lfoGain.gain.value = 80;
-      lfo.connect(lfoGain);
-      lfoGain.connect(osc.frequency);
-      osc.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      gainNode.gain.value = 0.15; 
-      osc.start();
-      lfo.start();
+      if (!audioCtx || audioCtx.state === 'suspended') {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.value = 120; 
+        lfo = audioCtx.createOscillator();
+        const lfoGain = audioCtx.createGain();
+        lfo.frequency.value = 5; 
+        lfoGain.gain.value = 80;
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        gainNode.gain.value = 0.15; 
+        osc.start();
+        lfo.start();
+      }
     } catch(e) {}
   }
 
@@ -115,6 +124,7 @@
     try {
       if(osc) osc.stop();
       if(audioCtx) audioCtx.close();
+      audioCtx = null;
     } catch(e) {}
   }
 
@@ -125,7 +135,7 @@
   }
 
   function bloquear(e) {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'w') return; // escape de emergência
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'w') return; // escape
     e.preventDefault(); 
     e.stopPropagation(); 
     return false; 
@@ -150,13 +160,19 @@
     tocarSirene();
     ativarBloqueio();
     
-    // --- MODO PRISÃO (Se sair do F11, volta na hora) ---
+    // --- MODO ANTI-F11 ---
     checandoTelaCheia = setInterval(() => {
+      // Se ele saiu da tela cheia (F11)
       if (isActive && !document.fullscreenElement && !document.webkitFullscreenElement) {
-         irParaTelaCheia(); // força voltar pra tela cheia
-         tocarSirene(); // tenta religar o som
+         document.body.classList.add('fuga'); // Dá zoom de 300% cobrindo a tela toda
+         // Tenta religar o som caso o navegador tenha suspendido ao sair
+         if (audioCtx && audioCtx.state === 'suspended') {
+             audioCtx.resume();
+         }
+      } else {
+         document.body.classList.remove('fuga');
       }
-    }, 500);
+    }, 200);
 
     timerInterval = setInterval(() => {
       segundosRestantes--;
@@ -184,6 +200,7 @@
     if (document.exitFullscreen) document.exitFullscreen().catch(()=>{});
     else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
     
+    document.body.classList.remove('fuga');
     lockScreen.classList.remove('active');
     
     document.body.innerHTML = '<div style="display:flex;flex-direction:column;height:100vh;align-items:center;justify-content:center;background:#000;color:#0f0;font-family:monospace;font-size:2rem;text-align:center;">PEGADINHA 😂<br><br><span style="font-size:1rem;color:#aaa;">Seus arquivos estão seguros. (brincadeira)</span></div>';
@@ -191,6 +208,14 @@
   }
 
   escapeBtn.addEventListener('click', liberar);
+
+  // Detecta se o usuário apertou F11 ou Esc
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && isActive) {
+      document.body.classList.add('fuga'); // Ativa o zoom imediato
+    }
+  });
+
 })();
 </script>
 </body>
